@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>ipress</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body style="width: 70%;margin: auto">
+  <div id="wrapper">
+  <h1 id="medication-mapping">Medication Mapping</h1>
+<h2 id="summary">Summary</h2>
+<p>This document provides guidance on how to take a medication list with no cross-reference identifier and match it with a RxCUI identifier for a semantic clinical drug or a semantic brand drug. Which can be used in clinical decision support systems to provide insight into medication safety.</p>
+<blockquote>
+<p>NOTE: this document uses some medication specific terminology, please see the glossary below for definitions and links to further explainations of each concept.</p>
+</blockquote>
+<p>In order to create a mapping you will need the following:</p>
+<ul>
+<li>English Generic Name of the medication</li>
+<li>Strength of the medication</li>
+<li>Strength units of the medication</li>
+<li>Dose form of the medication</li>
+</ul>
+<h2 id="using-the-rxnorm-api">Using the RxNorm API</h2>
+<p>The RxNorm REST API is published online at <a href="https://rxnav.nlm.nih.gov/RxNormAPIs.html">https://rxnav.nlm.nih.gov/RxNormAPIs.html</a> and contains an endpoint that will try to match the medication name, strength, strength units and form to the best rxcui. You can see some background information on how they try to find the right match.  <a href="https://rxnav.nlm.nih.gov/RxNormApproxMatch.html">https://rxnav.nlm.nih.gov/RxNormApproxMatch.html</a></p>
+<h2 id="comments-to-help">Comments to help</h2>
+<p>If there is not a high signal of results, the response will provide comments giving the requestor information about what could be a issue with the matching:</p>
+<ul>
+<li>Mispellings</li>
+<li>No drugs identified</li>
+</ul>
+<h2 id="getting-to-scd-or-sbd">Getting to SCD or SBD</h2>
+<p>Once you have an RxCUI, you can check the rxcui aganist the following <code>/rxcui/{rxcui}/properties</code> endpoint:</p>
+<p><a href="https://rxnav.nlm.nih.gov/RxNormAPIREST.html#uLink=RxNorm_REST_getRxConceptProperties">https://rxnav.nlm.nih.gov/RxNormAPIREST.html#uLink=RxNorm_REST_getRxConceptProperties</a></p>
+<p>This request will give you the term-type, if it is not SCD or SBD, then you will need to get the related types.</p>
+<p>You can get the related types by calling the the related endpoint:</p>
+<p><a href="https://rxnav.nlm.nih.gov/RxNormAPIREST.html#uLink=RxNorm_REST_getRelatedByType">https://rxnav.nlm.nih.gov/RxNormAPIREST.html#uLink=RxNorm_REST_getRelatedByType</a></p>
+<h2 id="json-data">JSON Data</h2>
+<p>You can choose between working with xml or json, in order to use json, simply add a .json at the end of each url path. Note the examples in the documentation.</p>
+<h2 id="examples">Examples</h2>
+<blockquote>
+<p>HTTPS RESTful endpoints can be access using any program language that supports an http client and json or xml parsers. In these examples we chose to provide the examples using <code>curl</code> which is a command line utility that shows the resource, headers, methods and responses. For more information about curl - <a href="https://curl.haxx.se/">https://curl.haxx.se/</a>, for more information about RESTful Services - <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">https://en.wikipedia.org/wiki/Representational_state_transfer</a></p>
+</blockquote>
+<h3 id="example-1-simple-match">Example 1 - Simple Match</h3>
+<p>Product: nifedipine 30 mg tablet</p>
+<pre><code>curl https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=nifedipine%2030%20mg</code></pre><p>Results</p>
+<pre><code>approximateGroup: 
+  inputTerm: nifedipine 30 mg
+  comment:   
+  candidate: 
+    - 
+      rxcui: 317655
+      rxaui: 1482815
+      score: 100
+      rank:  1</code></pre><p>Raw Json</p>
+<pre><code>{
+  &quot;approximateGroup&quot;: {
+    &quot;inputTerm&quot;: &quot;nifedipine 30 mg&quot;,
+    &quot;comment&quot;: &quot;&quot;,
+    &quot;candidate&quot;: [
+      {
+        &quot;rxcui&quot;: &quot;317655&quot;,
+        &quot;rxaui&quot;: &quot;1482815&quot;,
+        &quot;score&quot;: &quot;100&quot;,
+        &quot;rank&quot;: &quot;1&quot;
+      },
+      {
+        &quot;rxcui&quot;: &quot;317655&quot;,
+        &quot;rxaui&quot;: &quot;3724139&quot;,
+        &quot;score&quot;: &quot;100&quot;,
+        &quot;rank&quot;: &quot;1&quot;
+      },
+      ...
+    ]
+  }
+}</code></pre><p>The results will come back sorted based on rank and score:</p>
+<p>You can use the rxcui to get the properties of the candidate:</p>
+<pre><code>curl https://rxnav.nlm.nih.gov/REST/rxcui/317655/properties.json</code></pre><p>Response</p>
+<pre><code>{
+  &quot;properties&quot;: {
+    &quot;rxcui&quot;: &quot;317655&quot;,
+    &quot;name&quot;: &quot;Nifedipine 30 MG&quot;,
+    &quot;synonym&quot;: &quot;&quot;,
+    &quot;tty&quot;: &quot;SCDC&quot;,
+    &quot;language&quot;: &quot;ENG&quot;,
+    &quot;suppress&quot;: &quot;N&quot;,
+    &quot;umlscui&quot;: &quot;C0993433&quot;
+  }
+}</code></pre><p>This shows that this rxcui has tty of SCDC or Semantic Clinical Drug Concept. If a match is not a SCD or SBD, then you can use the <code>/rxcui/{rxcui}/related?tty</code> endpoint</p>
+<pre><code>curl https://rxnav.nlm.nih.gov/REST/rxcui/317655/related.json?tty=SBD+SCD</code></pre><p>Response</p>
+<pre><code>{
+  &quot;relatedGroup&quot;: {
+    &quot;rxcui&quot;: &quot;317655&quot;,
+    &quot;termType&quot;: [
+      &quot;SBD&quot;,
+      &quot;SCD&quot;
+    ],
+    &quot;conceptGroup&quot;: [
+      {
+        &quot;tty&quot;: &quot;SBD&quot;,
+        &quot;conceptProperties&quot;: [
+          {
+            &quot;rxcui&quot;: &quot;207772&quot;,
+            &quot;name&quot;: &quot;Osmotic 24 HR Nifedipine 30 MG Extended Release Oral Tablet [Procardia]&quot;,
+            &quot;synonym&quot;: &quot;Procardia 30 MG Osmotic 24 HR Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SBD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C0709170&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;360394&quot;,
+            &quot;name&quot;: &quot;Osmotic 24 HR Nifedipine 30 MG Extended Release Oral Tablet [Nifedical]&quot;,
+            &quot;synonym&quot;: &quot;Nifedical 30 MG Osmotic 24 HR Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SBD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C1178599&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;672916&quot;,
+            &quot;name&quot;: &quot;24 HR Nifedipine 30 MG Extended Release Oral Tablet [Adalat]&quot;,
+            &quot;synonym&quot;: &quot;24 HR Adalat 30 MG Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SBD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C0978987&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;672920&quot;,
+            &quot;name&quot;: &quot;24 HR Nifedipine 30 MG Extended Release Oral Tablet [Afeditab CR]&quot;,
+            &quot;synonym&quot;: &quot;Afeditab CR 30 MG 24 HR Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SBD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C1585734&quot;
+          }
+        ]
+      },
+      {
+        &quot;tty&quot;: &quot;SCD&quot;,
+        &quot;conceptProperties&quot;: [
+          {
+            &quot;rxcui&quot;: &quot;198034&quot;,
+            &quot;name&quot;: &quot;24 HR Nifedipine 30 MG Extended Release Oral Tablet&quot;,
+            &quot;synonym&quot;: &quot;nifedipine 30 MG 24 HR Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SCD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C0689768&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;227058&quot;,
+            &quot;name&quot;: &quot;24 HR Nifedipine 30 MG Extended Release Oral Capsule&quot;,
+            &quot;synonym&quot;: &quot;nifedipine 30 MG 24 HR Extended Release Oral Capsule&quot;,
+            &quot;tty&quot;: &quot;SCD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C0732973&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;391980&quot;,
+            &quot;name&quot;: &quot;Nifedipine 30 MG Oral Tablet&quot;,
+            &quot;synonym&quot;: &quot;&quot;,
+            &quot;tty&quot;: &quot;SCD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C1298361&quot;
+          },
+          {
+            &quot;rxcui&quot;: &quot;1812011&quot;,
+            &quot;name&quot;: &quot;Osmotic 24 HR Nifedipine 30 MG Extended Release Oral Tablet&quot;,
+            &quot;synonym&quot;: &quot;nifedipine 30 MG Osmotic 24 HR Extended Release Oral Tablet&quot;,
+            &quot;tty&quot;: &quot;SCD&quot;,
+            &quot;language&quot;: &quot;ENG&quot;,
+            &quot;suppress&quot;: &quot;N&quot;,
+            &quot;umlscui&quot;: &quot;C4282228&quot;
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre><h2 id="conclusion">Conclusion</h2>
+<p>This document is an information only guide that provides a high level summary of some key RxNorm API endpoints that can help a developer map a medication drug list without a standard identifier. The RxNorm API is a public resource provided by the National Library of Medicine. The dataset that is used to drive this api and the api itself is available for download.</p>
+<p><a href="https://mor.nlm.nih.gov/download/rxnav/RxNav-in-a-Box.html">https://mor.nlm.nih.gov/download/rxnav/RxNav-in-a-Box.html</a></p>
+<p>For more information on the terms of use of the RxNorm REST API:</p>
+<p><a href="https://mor.nlm.nih.gov/download/rxnav/TermOfService.html">https://mor.nlm.nih.gov/download/rxnav/TermOfService.html</a></p>
+<h2 id="thank-you">Thank you</h2>
+<p>Thank you for taking the time to review this document and the RxNorm API, the National Institute of Medicine deserves all the credit for this fantastic resource.</p>
+<h2 id="glossary">Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>RxNorm</td>
+<td>RxNorm is a clinical database created by the United States National Institute of Medicine, it contains cross references to several clinical databases in an effort to normalize medication identifiers across healthcare</td>
+</tr>
+<tr>
+<td>Generic Medication Name</td>
+<td>The generic medication name is the ingredient or list of major ingredients to a medication in english</td>
+</tr>
+<tr>
+<td>Strength</td>
+<td>Is the number that represents the amount of a given unit that this ingredient exists in the medication</td>
+</tr>
+<tr>
+<td>Strength Units</td>
+<td>Is the unit or measurement of the given ingredient in the medication</td>
+</tr>
+<tr>
+<td>Dose Form</td>
+<td>Is the form of the medication. e.g. Tablet, Patch, etc</td>
+</tr>
+<tr>
+<td>API</td>
+<td>Application Program Interface or a bridge that any software application can call to get results</td>
+</tr>
+<tr>
+<td>RxCUI</td>
+<td>Is an rx norm identifier that spreads across several classification systems, from ingredient to product.</td>
+</tr>
+<tr>
+<td>SCD</td>
+<td>Semantic Clinical Drug - [Generic Medication Name] [Strength] [Strength Units] [Dose Form] [Dose Route]</td>
+</tr>
+<tr>
+<td>SBC</td>
+<td>Semantic Brand Drug - [Brand Medication Name] [Strength] [Strength Units] [Dose Form] [Dose Route]</td>
+</tr>
+</tbody></table>
+
+  </div> 
+</body>
+
+</html>
