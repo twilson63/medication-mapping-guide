@@ -222,15 +222,13 @@ Response
 ```
 
 
-## Conclusion
+## Legal Compliance
 
-This document is an information only guide that provides a high level summary of some key RxNorm API endpoints that can help a developer map a medication drug list without a standard identifier. The RxNorm API is a public resource provided by the National Library of Medicine. The dataset that is used to drive this api and the api itself is available for download.
+This document is for information purposes only and is intended to provide a high level overview of some key RxNorm API endpoints that can help a developer map a medication drug list without a standard identifier.  The RxNorm API is a public resource provided by the National Library of Medicine.  The dataset that is used to drive this API and the API itself are available for download.  This document does not constitute legal advice.  Developers using this guidance are responsible for compliance with all applicable local, regional, and international laws, ordinances, regulations, codes and standards.
+
+## Download API
 
 https://mor.nlm.nih.gov/download/rxnav/RxNav-in-a-Box.html
-
-For more information on the terms of use of the RxNorm REST API:
-
-https://mor.nlm.nih.gov/download/rxnav/TermOfService.html
 
 ## Thank you 
 
